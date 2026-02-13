@@ -16,7 +16,7 @@ target_link_libraries(my_app PRIVATE ui controller data script)
 find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
 target_link_libraries(my_app PRIVATE Qt6::Widgets)
 
-# 设置 RPATH 或复制 dlls 在 Windows 上（如果使用 shared libs via vcpkg）
+# 拷贝 dlls  
 # 这里不行，原因不明，qt动态库部署暂时用 windeployqt.exe "D:/Demo/LearningForOpengl/bin/app.exe"
 # if(WIN32 OR WIN64)
 #   # 获取 windeployqt 的完整路径
