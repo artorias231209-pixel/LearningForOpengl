@@ -1,6 +1,7 @@
 # Ignore CMake/Visual Studio build output
 /build/
 /build/**
+/bin/
 
 # CMake cache and generated files
 CMakeCache.txt
