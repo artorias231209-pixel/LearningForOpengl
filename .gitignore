@@ -1,0 +1,19 @@
+# Ignore CMake/Visual Studio build output
+/build/
+/build/**
+
+# CMake cache and generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.suo
+*.user
+*.sdf
+*.VC.db
+
+# VS Code workspace settings
