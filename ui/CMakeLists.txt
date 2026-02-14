@@ -69,10 +69,3 @@ message(STATUS "  Forms:   ${UI_FORMS}")
 
 # 拷贝构建结果到 bin 目录
 copy_to_global_bin(ui)
-# add_custom_command(TARGET ui POST_BUILD
-#     COMMAND ${CMAKE_COMMAND} -E make_directory
-#             ${CMAKE_SOURCE_DIR}/../bin
-#     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#             $<TARGET_FILE:ui>
-#             ${CMAKE_SOURCE_DIR}/../bin/
-# )

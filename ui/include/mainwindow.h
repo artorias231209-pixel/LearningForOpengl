@@ -2,22 +2,22 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+
 #include "export_def.h"
 
 namespace Ui {
-    class MainWindow;   
+class MainWindow;
 }
 
-class UI_API MainWindow : public QMainWindow
-{
-    Q_OBJECT
+class UI_API MainWindow : public QMainWindow {
+  Q_OBJECT
 
-public:
-    explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+ public:
+  explicit MainWindow(QWidget* parent = nullptr);
+  ~MainWindow();
 
-private:
-    Ui::MainWindow *ui;   
+ private:
+  Ui::MainWindow* ui;
 };
 
-#endif // MAINWINDOW_H
+#endif  // MAINWINDOW_H

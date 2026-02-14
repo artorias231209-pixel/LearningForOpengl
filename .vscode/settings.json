@@ -1,11 +1,12 @@
 {
-  // 编码相关设置
   "files.encoding": "utf8",
-  "[cmake]": {
-    "files.encoding": "utf8"
+  "terminal.integrated.env.windows": {
+    "CHCP": "65001"
   },
-
-  // CMake 工具设置
+  "cmake.generator": "Ninja",
+  "cmake.configureOnOpen": true,
+  "cmake.buildDirectory": "${workspaceFolder}/build",
+  "cmake.defaultBuildTarget": "app",
   "cmake.configureEnvironment": {
     "PYTHONIOENCODING": "utf-8",
     "LANG": "zh_CN.UTF-8"
@@ -13,27 +14,5 @@
   "cmake.buildEnvironment": {
     "PYTHONIOENCODING": "utf-8"
   },
-
-  // CMake 构建选项
-  "cmake.generator": "Visual Studio 17 2022",
-  "cmake.architecture": "x64",
-  "cmake.preferredGenerators": [
-    "Visual Studio 17 2022"
-  ],
-
-  // 构建时输出编码（确保 CMake 输出以 UTF-8 方式显示）
-  "cmake.configureArgs": [
-    "-DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE"
-  ],
-
-  // 终端编码
-  "terminal.integrated.env.windows": {
-    "PYTHONIOENCODING": "utf-8",
-    "CHCP": "65001"
-  },
-
-  // VS Code 输出面板编码
-  "files.exclude": {
-    "**/.git": true
-  }
+  "cmake.runTargetDir": "${workspaceFolder}/bin/${variant}"
 }

@@ -2,15 +2,26 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch app (integratedTerminal)",
+      "name": "Launch app (Debug)",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/app.exe",
-      "args": [],
+      "program": "${workspaceFolder}/bin/Debug/app.exe",
+      "args": ["--config", "debug"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
-      "preLaunchTask": "set-chcp-65001"
+      "preLaunchTask": "build app (Debug)"
+    },
+    {
+      "name": "Launch app (Release)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/Release/app.exe",
+      "args": ["--config", "release"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "preLaunchTask": "build app (Release)"
     }
   ]
 }
