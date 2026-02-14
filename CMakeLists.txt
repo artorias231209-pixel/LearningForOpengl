@@ -1,16 +1,15 @@
 cmake_minimum_required(VERSION 3.18)
 
-file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/Debug)
-file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/Release)
+file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 function(copy_to_global_bin target_name)
     add_custom_command(TARGET ${target_name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory
-                ${CMAKE_SOURCE_DIR}/bin/$<CONFIG>
+                ${CMAKE_SOURCE_DIR}/bin
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 $<TARGET_FILE:${target_name}>
-                ${CMAKE_SOURCE_DIR}/bin/$<CONFIG>/
-        COMMENT "Copying ${target_name} ($<CONFIG>) to global bin directory"
+                ${CMAKE_SOURCE_DIR}/bin/
+        COMMENT "Copying ${target_name} to global bin directory"
     )
 endfunction()
 
@@ -75,9 +74,9 @@ target_compile_definitions(app PRIVATE UNICODE _UNICODE)
 
 set_target_properties(app PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/Release"
-    PDB_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug"
+    # RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin"
+    # RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin"
+    PDB_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin"
 )
 
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")

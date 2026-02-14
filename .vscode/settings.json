@@ -1,12 +1,18 @@
 {
   "files.encoding": "utf8",
+  "editor.formatOnSave": true,
+  "C_Cpp.clang_format_style": "Google",
+  "editor.rulers": [
+    100,
+    160
+  ],
   "terminal.integrated.env.windows": {
-    "CHCP": "65001"
+    "CHCP": "65001",
+    "PYTHONIOENCODING": "utf-8"
   },
   "cmake.generator": "Ninja",
   "cmake.configureOnOpen": true,
   "cmake.buildDirectory": "${workspaceFolder}/build",
-  "cmake.defaultBuildTarget": "app",
   "cmake.configureEnvironment": {
     "PYTHONIOENCODING": "utf-8",
     "LANG": "zh_CN.UTF-8"
@@ -14,5 +20,5 @@
   "cmake.buildEnvironment": {
     "PYTHONIOENCODING": "utf-8"
   },
-  "cmake.runTargetDir": "${workspaceFolder}/bin/${variant}"
+  "cmake.configurePresets": "debug"
 }

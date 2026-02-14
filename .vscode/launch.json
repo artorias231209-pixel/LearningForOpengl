@@ -2,26 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch app (Debug)",
+      "name": "Launch",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/bin/Debug/app.exe",
-      "args": ["--config", "debug"],
+      "program": "${workspaceFolder}/bin/app.exe",
+      "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "preLaunchTask": "build app (Debug)"
-    },
-    {
-      "name": "Launch app (Release)",
-      "type": "cppvsdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/bin/Release/app.exe",
-      "args": ["--config", "release"],
-      "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "preLaunchTask": "build app (Release)"
     }
   ]
 }
