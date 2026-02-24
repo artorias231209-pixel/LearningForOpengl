@@ -3,12 +3,13 @@
 
 #include <QMainWindow>
 
-#include "export_def.h"
+#include "gui_export_def.h"
 
 namespace Ui {
 class MainWindow;
 }
 
+namespace Gui {
 class UI_API MainWindow : public QMainWindow {
   Q_OBJECT
 
@@ -19,5 +20,6 @@ class UI_API MainWindow : public QMainWindow {
  private:
   Ui::MainWindow* ui;
 };
+}  // namespace Gui
 
 #endif  // MAINWINDOW_H

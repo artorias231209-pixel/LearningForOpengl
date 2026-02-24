@@ -17,4 +17,7 @@ Makefile
 *.sdf
 *.VC.db
 
+# Qt Creator
+.qtcreator/
+
 # VS Code workspace settings

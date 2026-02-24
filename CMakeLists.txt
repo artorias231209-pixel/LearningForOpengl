@@ -45,7 +45,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets)
 find_package(OpenGL REQUIRED)
 find_package(OpenCASCADE REQUIRED)
 
-# add_subdirectory(data)
+add_subdirectory(data)
 # add_subdirectory(controller)
 add_subdirectory(ui)
 # add_subdirectory(script)

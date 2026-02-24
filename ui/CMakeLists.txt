@@ -38,22 +38,22 @@ add_library(ui SHARED
 
 target_include_directories(ui
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
 )
 
 target_compile_definitions(ui PRIVATE UI_LIBRARY)
 
 target_link_libraries(ui
-    PUBLIC
+    PRIVATE       
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
-        # controller
-        # data
+        data
 )
 
 if (TARGET Qt6::OpenGL AND TARGET Qt6::OpenGLWidgets)
-    target_link_libraries(ui PUBLIC Qt6::OpenGL Qt6::OpenGLWidgets)
+    target_link_libraries(ui PRIVATE Qt6::OpenGL Qt6::OpenGLWidgets)
 endif()
 
 target_compile_features(ui PUBLIC cxx_std_17)

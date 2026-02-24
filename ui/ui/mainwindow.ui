@@ -133,7 +133,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="Origin">
        <attribute name="title">
@@ -146,7 +146,7 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
-         <widget class="QOpenGLWidget" name="openGLWidget">
+         <widget class="RenderWidget" name="openGLWidget">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -157,7 +157,7 @@
            <cursorShape>ArrowCursor</cursorShape>
           </property>
           <property name="contextMenuPolicy">
-           <enum>Qt::PreventContextMenu</enum>
+           <enum>Qt::ContextMenuPolicy::PreventContextMenu</enum>
           </property>
           <property name="autoFillBackground">
            <bool>false</bool>
@@ -176,7 +176,7 @@
      <x>0</x>
      <y>0</y>
      <width>985</width>
-     <height>17</height>
+     <height>18</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -209,6 +209,13 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>RenderWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>renderwidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
