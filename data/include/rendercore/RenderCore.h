@@ -1,6 +1,7 @@
 #ifndef RENDERCORE_H
 #define RENDERCORE_H
 
+#include <TopoDS_Shape.hxx>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,9 @@ class PROJECT_DATA_API RenderCore {
   void clear();
   void generatePlane(float width, float height, uint32_t nx, uint32_t ny);
   void scale(float factor);
+
+  // 从 OCC 形状生成渲染数据
+  void fromOCCShape(const TopoDS_Shape& shape);
 };
 
 }  // namespace Data

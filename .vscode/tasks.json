@@ -4,11 +4,10 @@
     {
       "label": "build app (Debug)",
       "type": "shell",
-      "command": "cmake",
+      "command": "cmd",
       "args": [
-        "--build",
-        "--preset",
-        "Debug"
+        "/c",
+        "\"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat\" x64 && cmake --build build --config Debug"
       ],
       "group": "build",
       "problemMatcher": [
@@ -18,11 +17,10 @@
     {
       "label": "build app (Release)",
       "type": "shell",
-      "command": "cmake",
+      "command": "cmd",
       "args": [
-        "--build",
-        "--preset",
-        "Release"
+        "/c",
+        "\"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat\" x64 && cmake --build build --config Release"
       ],
       "group": "build",
       "problemMatcher": [

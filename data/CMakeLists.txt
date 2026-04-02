@@ -4,6 +4,7 @@ project(data)
 find_package(glm CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
+find_package(OpenCASCADE REQUIRED)
 # find_package(glad CONFIG REQUIRED)
 
 file(GLOB_RECURSE DATA_HEADERS CONFIGURE_DEPENDS
@@ -32,6 +33,11 @@ target_link_libraries(data
         glm::glm
         OpenGL::GL
         GLEW::GLEW
+        TKernel
+        TKMath
+        TKBRep
+        TKPrim
+        TKMesh
         # glad::glad  
 )
 

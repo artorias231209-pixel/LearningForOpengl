@@ -39,6 +39,7 @@ add_library(ui SHARED
 target_include_directories(ui
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/data/include>
         $<INSTALL_INTERFACE:include>
 )
 

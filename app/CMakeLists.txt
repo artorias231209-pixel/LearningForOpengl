@@ -10,6 +10,12 @@ endif()
 
 
 add_executable(my_app src/main.cpp)
+
+target_include_directories(my_app PRIVATE
+    ${CMAKE_SOURCE_DIR}/data/include
+    ${CMAKE_SOURCE_DIR}/ui/include
+)
+
 target_link_libraries(my_app PRIVATE ui controller data script)
 
 # 如果使用 Qt, 需要 Qt Widgets
