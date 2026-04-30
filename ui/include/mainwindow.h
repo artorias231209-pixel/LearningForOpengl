@@ -21,9 +21,15 @@ class UI_API MainWindow : public QMainWindow {
 
  private slots:
   void on_Rec_btn_clicked();
+  void on_Tri_btn_clicked();
+  void on_Sphere_btn_clicked();
+  void on_Lens_btn_clicked();
+  void on_Ring_btn_clicked();
 
  private:
-  Ui::MainWindow* ui;
+  void pushToRenderWidget();
+
+  Ui::MainWindow* ui = nullptr;
   Data::ModelingCore m_modelingCore;
   Data::RenderCore m_renderCore;
 };

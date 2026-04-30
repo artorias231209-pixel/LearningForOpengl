@@ -2,18 +2,41 @@
 
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRep_Tool.hxx>
-#include <Poly_Array1OfTriangle.hxx>
 #include <Poly_Triangulation.hxx>
+#include <TopAbs_Orientation.hxx>
 #include <TopAbs_ShapeEnum.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopLoc_Location.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Face.hxx>
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <gp_Pnt.hxx>
 #include <gp_Trsf.hxx>
-#include <iostream>
+
+namespace {
+constexpr float kEpsilon = 1e-6f;
+
+std::array<float, 3> Cross3(const std::array<float, 3>& a,
+                            const std::array<float, 3>& b) {
+  return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
+          a[0] * b[1] - a[1] * b[0]};
+}
+
+void Normalize3(float& x, float& y, float& z) {
+  const float len = std::sqrt(x * x + y * y + z * z);
+  if (len <= kEpsilon) {
+    x = 0.0f;
+    y = 0.0f;
+    z = 1.0f;
+    return;
+  }
+  x /= len;
+  y /= len;
+  z /= len;
+}
+}  // namespace
 
 namespace Data {
 void RenderCore::clear() {
@@ -24,23 +47,27 @@ void RenderCore::clear() {
 void RenderCore::generatePlane(float width, float height, uint32_t nx,
                                uint32_t ny) {
   clear();
-  m_vertices.reserve((nx + 1) * (ny + 1));
-  m_indices.reserve(nx * ny * 6);
 
-  for (uint32_t j = 0; j <= ny; ++j) {
-    float v = float(j) / ny;
-    float yPos = (v - 0.5f) * height;
-    for (uint32_t i = 0; i <= nx; ++i) {
-      float u = float(i) / nx;
-      float xPos = (u - 0.5f) * width;
+  const uint32_t sx = std::max(nx, 1u);
+  const uint32_t sy = std::max(ny, 1u);
+
+  m_vertices.reserve((sx + 1) * (sy + 1));
+  m_indices.reserve(sx * sy * 6);
+
+  for (uint32_t j = 0; j <= sy; ++j) {
+    const float v = static_cast<float>(j) / static_cast<float>(sy);
+    const float yPos = (v - 0.5f) * height;
+    for (uint32_t i = 0; i <= sx; ++i) {
+      const float u = static_cast<float>(i) / static_cast<float>(sx);
+      const float xPos = (u - 0.5f) * width;
       m_vertices.push_back({xPos, yPos, 0.0f, 0.0f, 0.0f, 1.0f, u, v});
     }
   }
 
-  for (uint32_t j = 0; j < ny; ++j) {
-    for (uint32_t i = 0; i < nx; ++i) {
-      uint32_t row1 = j * (nx + 1);
-      uint32_t row2 = (j + 1) * (nx + 1);
+  for (uint32_t j = 0; j < sy; ++j) {
+    for (uint32_t i = 0; i < sx; ++i) {
+      const uint32_t row1 = j * (sx + 1);
+      const uint32_t row2 = (j + 1) * (sx + 1);
 
       m_indices.push_back(row1 + i);
       m_indices.push_back(row2 + i);
@@ -53,7 +80,18 @@ void RenderCore::generatePlane(float width, float height, uint32_t nx,
   }
 }
 
-// 生成圆柱或球等方法可以继续添加
+void RenderCore::generateTriangle(float size) {
+  clear();
+
+  const float h = std::max(size, 1e-3f) * 0.8660254f;
+  m_vertices = {
+      {-0.5f * size, -h / 3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
+      {0.5f * size, -h / 3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f},
+      {0.0f, 2.0f * h / 3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f},
+  };
+  m_indices = {0, 1, 2};
+}
+
 void RenderCore::scale(float factor) {
   for (auto& v : m_vertices) {
     v.x *= factor;
@@ -65,83 +103,103 @@ void RenderCore::scale(float factor) {
 void RenderCore::fromOCCShape(const TopoDS_Shape& shape) {
   clear();
 
-  // 网格化形状
-  BRepMesh_IncrementalMesh mesh(shape, 0.01);
-  mesh.Perform();
+  BRepMesh_IncrementalMesh mesher(shape, 0.01, false, 0.5, true);
+  mesher.Perform();
 
-  // 遍历所有面
   for (TopExp_Explorer explorer(shape, TopAbs_FACE); explorer.More();
        explorer.Next()) {
-    // 通过指针转换将 TopoDS_Shape 转换为 TopoDS_Face
-    const TopoDS_Face& face = *(const TopoDS_Face*)&(explorer.Current());
+    const TopoDS_Face face = TopoDS::Face(explorer.Current());
     TopLoc_Location location;
-
-    // 获取三角网格
     Handle(Poly_Triangulation) triangulation =
         BRep_Tool::Triangulation(face, location);
+    if (triangulation.IsNull()) {
+      continue;
+    }
 
-    if (!triangulation.IsNull()) {
-      // 获取变换
-      gp_Trsf trsf = location.Transformation();
+    const gp_Trsf trsf = location.Transformation();
+    const uint32_t baseIndex = static_cast<uint32_t>(m_vertices.size());
 
-      // 获取顶点
-      const Standard_Integer nodeCount = triangulation->NbNodes();
-      for (Standard_Integer i = 1; i <= nodeCount; ++i) {
-        gp_Pnt pnt = triangulation->Node(i).Transformed(trsf);
-        m_vertices.push_back(
-            {static_cast<float>(pnt.X()), static_cast<float>(pnt.Y()),
-             static_cast<float>(pnt.Z()), 0.0f, 0.0f, 1.0f,  // 临时法线
-             0.0f, 0.0f});                                   // 临时纹理坐标
+    const Standard_Integer nodeCount = triangulation->NbNodes();
+    for (Standard_Integer i = 1; i <= nodeCount; ++i) {
+      const gp_Pnt p = triangulation->Node(i).Transformed(trsf);
+      m_vertices.push_back({static_cast<float>(p.X()), static_cast<float>(p.Y()),
+                            static_cast<float>(p.Z()), 0.0f, 0.0f, 0.0f, 0.0f,
+                            0.0f});
+    }
+
+    const bool reversed = face.Orientation() == TopAbs_REVERSED;
+    const Standard_Integer triCount = triangulation->NbTriangles();
+    for (Standard_Integer i = 1; i <= triCount; ++i) {
+      Standard_Integer n1 = 0;
+      Standard_Integer n2 = 0;
+      Standard_Integer n3 = 0;
+      triangulation->Triangle(i).Get(n1, n2, n3);
+      if (reversed) {
+        std::swap(n2, n3);
       }
 
-      // 获取三角形索引
-      const Standard_Integer triCount = triangulation->NbTriangles();
-      for (Standard_Integer i = 1; i <= triCount; ++i) {
-        const Poly_Triangle& triangle = triangulation->Triangle(i);
-        Standard_Integer n1, n2, n3;
-        triangle.Get(n1, n2, n3);
-
-        // 调整索引从1开始到0开始
-        m_indices.push_back(static_cast<uint32_t>(n1 - 1));
-        m_indices.push_back(static_cast<uint32_t>(n2 - 1));
-        m_indices.push_back(static_cast<uint32_t>(n3 - 1));
-      }
+      m_indices.push_back(baseIndex + static_cast<uint32_t>(n1 - 1));
+      m_indices.push_back(baseIndex + static_cast<uint32_t>(n2 - 1));
+      m_indices.push_back(baseIndex + static_cast<uint32_t>(n3 - 1));
     }
   }
 
-  // 计算法线 (简化版本)
   for (size_t i = 0; i + 2 < m_indices.size(); i += 3) {
-    Vertex& v1 = m_vertices[m_indices[i]];
-    Vertex& v2 = m_vertices[m_indices[i + 1]];
-    Vertex& v3 = m_vertices[m_indices[i + 2]];
+    Vertex& v0 = m_vertices[m_indices[i]];
+    Vertex& v1 = m_vertices[m_indices[i + 1]];
+    Vertex& v2 = m_vertices[m_indices[i + 2]];
 
-    auto cross = [](float ax, float ay, float az, float bx, float by,
-                    float bz) {
-      return std::array<float, 3>{ay * bz - az * by, az * bx - ax * bz,
-                                  ax * by - ay * bx};
-    };
+    const std::array<float, 3> e1 = {v1.x - v0.x, v1.y - v0.y, v1.z - v0.z};
+    const std::array<float, 3> e2 = {v2.x - v0.x, v2.y - v0.y, v2.z - v0.z};
+    const std::array<float, 3> n = Cross3(e1, e2);
 
-    auto normalize = [](std::array<float, 3> v) {
-      float len = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-      if (len <= 1e-6f) return std::array<float, 3>{0.0f, 0.0f, 1.0f};
-      return std::array<float, 3>{v[0] / len, v[1] / len, v[2] / len};
-    };
+    v0.nx += n[0];
+    v0.ny += n[1];
+    v0.nz += n[2];
+    v1.nx += n[0];
+    v1.ny += n[1];
+    v1.nz += n[2];
+    v2.nx += n[0];
+    v2.ny += n[1];
+    v2.nz += n[2];
+  }
 
-    auto e1 = cross(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z, v3.x - v1.x,
-                    v3.y - v1.y, v3.z - v1.z);
-    auto n = normalize(e1);
+  for (auto& v : m_vertices) {
+    Normalize3(v.nx, v.ny, v.nz);
+  }
 
-    v1.nx = n[0];
-    v1.ny = n[1];
-    v1.nz = n[2];
+  if (m_vertices.empty()) {
+    return;
+  }
 
-    v2.nx = n[0];
-    v2.ny = n[1];
-    v2.nz = n[2];
+  float minX = m_vertices.front().x;
+  float minY = m_vertices.front().y;
+  float minZ = m_vertices.front().z;
+  float maxX = minX;
+  float maxY = minY;
+  float maxZ = minZ;
+  for (const auto& v : m_vertices) {
+    minX = std::min(minX, v.x);
+    minY = std::min(minY, v.y);
+    minZ = std::min(minZ, v.z);
+    maxX = std::max(maxX, v.x);
+    maxY = std::max(maxY, v.y);
+    maxZ = std::max(maxZ, v.z);
+  }
 
-    v3.nx = n[0];
-    v3.ny = n[1];
-    v3.nz = n[2];
+  const float cx = 0.5f * (minX + maxX);
+  const float cy = 0.5f * (minY + maxY);
+  const float cz = 0.5f * (minZ + maxZ);
+  const float extentX = maxX - minX;
+  const float extentY = maxY - minY;
+  const float extentZ = maxZ - minZ;
+  const float maxExtent = std::max({extentX, extentY, extentZ, 1e-3f});
+  const float normalizeScale = 1.6f / maxExtent;
+
+  for (auto& v : m_vertices) {
+    v.x = (v.x - cx) * normalizeScale;
+    v.y = (v.y - cy) * normalizeScale;
+    v.z = (v.z - cz) * normalizeScale;
   }
 }
 

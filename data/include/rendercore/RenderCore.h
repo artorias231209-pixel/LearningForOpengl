@@ -2,16 +2,16 @@
 #define RENDERCORE_H
 
 #include <TopoDS_Shape.hxx>
-#include <string>
+#include <cstdint>
 #include <vector>
 
 #include "data_export_def.h"
 
 namespace Data {
 struct Vertex {
-  float x, y, z;     // 位置
-  float nx, ny, nz;  // 法线
-  float u, v;        // 纹理坐标
+  float x, y, z;
+  float nx, ny, nz;
+  float u, v;
 };
 
 class PROJECT_DATA_API RenderCore {
@@ -19,15 +19,13 @@ class PROJECT_DATA_API RenderCore {
   RenderCore() = default;
   ~RenderCore() = default;
 
-  // 顶点、索引数据
   std::vector<Vertex> m_vertices;
   std::vector<uint32_t> m_indices;
 
   void clear();
   void generatePlane(float width, float height, uint32_t nx, uint32_t ny);
+  void generateTriangle(float size);
   void scale(float factor);
-
-  // 从 OCC 形状生成渲染数据
   void fromOCCShape(const TopoDS_Shape& shape);
 };
 
