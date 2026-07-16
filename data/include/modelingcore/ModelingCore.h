@@ -12,7 +12,12 @@ class PROJECT_DATA_API ModelingCore {
   ~ModelingCore() = default;
 
   TopoDS_Shape createCuboid(double dx, double dy, double dz);
+  TopoDS_Shape createTetrahedron(double edgeLength);
   TopoDS_Shape createSphere(double radius);
+  TopoDS_Shape createCone(double radius, double height);
+  TopoDS_Shape createCylinder(double radius, double height);
+  TopoDS_Shape createRegularPrism(int sides, double circumradius,
+                                  double height);
   TopoDS_Shape createRing(double majorRadius, double minorRadius);
   TopoDS_Shape createLens(double radius, double polarAngle);
 };

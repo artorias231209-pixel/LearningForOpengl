@@ -1,7 +1,9 @@
 #include "rendercore/RenderCore.h"
 
 #include <BRepMesh_IncrementalMesh.hxx>
+#include <BRepBndLib.hxx>
 #include <BRep_Tool.hxx>
+#include <Bnd_Box.hxx>
 #include <Poly_Triangulation.hxx>
 #include <TopAbs_Orientation.hxx>
 #include <TopAbs_ShapeEnum.hxx>
@@ -32,9 +34,43 @@ void Normalize3(float& x, float& y, float& z) {
     z = 1.0f;
     return;
   }
+
   x /= len;
   y /= len;
   z /= len;
+}
+
+void RebuildNormals(std::vector<Data::Vertex>& vertices,
+                    const std::vector<uint32_t>& indices) {
+  for (auto& v : vertices) {
+    v.nx = 0.0f;
+    v.ny = 0.0f;
+    v.nz = 0.0f;
+  }
+
+  for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+    Data::Vertex& v0 = vertices[indices[i]];
+    Data::Vertex& v1 = vertices[indices[i + 1]];
+    Data::Vertex& v2 = vertices[indices[i + 2]];
+
+    const std::array<float, 3> e1 = {v1.x - v0.x, v1.y - v0.y, v1.z - v0.z};
+    const std::array<float, 3> e2 = {v2.x - v0.x, v2.y - v0.y, v2.z - v0.z};
+    const std::array<float, 3> n = Cross3(e1, e2);
+
+    v0.nx += n[0];
+    v0.ny += n[1];
+    v0.nz += n[2];
+    v1.nx += n[0];
+    v1.ny += n[1];
+    v1.nz += n[2];
+    v2.nx += n[0];
+    v2.ny += n[1];
+    v2.nz += n[2];
+  }
+
+  for (auto& v : vertices) {
+    Normalize3(v.nx, v.ny, v.nz);
+  }
 }
 }  // namespace
 
@@ -42,6 +78,9 @@ namespace Data {
 void RenderCore::clear() {
   m_vertices.clear();
   m_indices.clear();
+  m_faceRanges.clear();
+  m_boundsMin = {0.0f, 0.0f, 0.0f};
+  m_boundsMax = {0.0f, 0.0f, 0.0f};
 }
 
 void RenderCore::generatePlane(float width, float height, uint32_t nx,
@@ -78,18 +117,24 @@ void RenderCore::generatePlane(float width, float height, uint32_t nx,
       m_indices.push_back(row1 + i + 1);
     }
   }
+
+  m_faceRanges.push_back({0, static_cast<uint32_t>(m_indices.size())});
+  updateBounds();
 }
 
 void RenderCore::generateTriangle(float size) {
   clear();
 
-  const float h = std::max(size, 1e-3f) * 0.8660254f;
+  const float edge = std::max(size, 1e-3f);
+  const float h = edge * 0.8660254f;
   m_vertices = {
-      {-0.5f * size, -h / 3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
-      {0.5f * size, -h / 3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f},
+      {-0.5f * edge, -h / 3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
+      {0.5f * edge, -h / 3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f},
       {0.0f, 2.0f * h / 3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f},
   };
   m_indices = {0, 1, 2};
+  m_faceRanges.push_back({0, static_cast<uint32_t>(m_indices.size())});
+  updateBounds();
 }
 
 void RenderCore::scale(float factor) {
@@ -98,12 +143,28 @@ void RenderCore::scale(float factor) {
     v.y *= factor;
     v.z *= factor;
   }
+  updateBounds();
 }
 
 void RenderCore::fromOCCShape(const TopoDS_Shape& shape) {
   clear();
 
-  BRepMesh_IncrementalMesh mesher(shape, 0.01, false, 0.5, true);
+  Bnd_Box bounds;
+  BRepBndLib::Add(shape, bounds);
+  Standard_Real minX = 0.0;
+  Standard_Real minY = 0.0;
+  Standard_Real minZ = 0.0;
+  Standard_Real maxX = 0.0;
+  Standard_Real maxY = 0.0;
+  Standard_Real maxZ = 0.0;
+  bounds.Get(minX, minY, minZ, maxX, maxY, maxZ);
+  const double dx = maxX - minX;
+  const double dy = maxY - minY;
+  const double dz = maxZ - minZ;
+  const double diagonal = std::sqrt(dx * dx + dy * dy + dz * dz);
+  const double deflection = std::max(diagonal * 0.005, 1e-4);
+
+  BRepMesh_IncrementalMesh mesher(shape, deflection, false, 0.5, true);
   mesher.Perform();
 
   for (TopExp_Explorer explorer(shape, TopAbs_FACE); explorer.More();
@@ -118,6 +179,7 @@ void RenderCore::fromOCCShape(const TopoDS_Shape& shape) {
 
     const gp_Trsf trsf = location.Transformation();
     const uint32_t baseIndex = static_cast<uint32_t>(m_vertices.size());
+    const uint32_t faceStart = static_cast<uint32_t>(m_indices.size());
 
     const Standard_Integer nodeCount = triangulation->NbNodes();
     for (Standard_Integer i = 1; i <= nodeCount; ++i) {
@@ -142,64 +204,56 @@ void RenderCore::fromOCCShape(const TopoDS_Shape& shape) {
       m_indices.push_back(baseIndex + static_cast<uint32_t>(n2 - 1));
       m_indices.push_back(baseIndex + static_cast<uint32_t>(n3 - 1));
     }
+
+    const uint32_t faceIndexCount = static_cast<uint32_t>(m_indices.size()) - faceStart;
+    if (faceIndexCount > 0) {
+      m_faceRanges.push_back({faceStart, faceIndexCount});
+    }
   }
 
-  for (size_t i = 0; i + 2 < m_indices.size(); i += 3) {
-    Vertex& v0 = m_vertices[m_indices[i]];
-    Vertex& v1 = m_vertices[m_indices[i + 1]];
-    Vertex& v2 = m_vertices[m_indices[i + 2]];
-
-    const std::array<float, 3> e1 = {v1.x - v0.x, v1.y - v0.y, v1.z - v0.z};
-    const std::array<float, 3> e2 = {v2.x - v0.x, v2.y - v0.y, v2.z - v0.z};
-    const std::array<float, 3> n = Cross3(e1, e2);
-
-    v0.nx += n[0];
-    v0.ny += n[1];
-    v0.nz += n[2];
-    v1.nx += n[0];
-    v1.ny += n[1];
-    v1.nz += n[2];
-    v2.nx += n[0];
-    v2.ny += n[1];
-    v2.nz += n[2];
-  }
-
-  for (auto& v : m_vertices) {
-    Normalize3(v.nx, v.ny, v.nz);
-  }
+  RebuildNormals(m_vertices, m_indices);
 
   if (m_vertices.empty()) {
     return;
   }
 
-  float minX = m_vertices.front().x;
-  float minY = m_vertices.front().y;
-  float minZ = m_vertices.front().z;
-  float maxX = minX;
-  float maxY = minY;
-  float maxZ = minZ;
+  updateBounds();
+}
+
+std::array<float, 3> RenderCore::center() const {
+  return {0.5f * (m_boundsMin[0] + m_boundsMax[0]),
+          0.5f * (m_boundsMin[1] + m_boundsMax[1]),
+          0.5f * (m_boundsMin[2] + m_boundsMax[2])};
+}
+
+float RenderCore::boundingRadius() const {
+  const std::array<float, 3> c = center();
+  float radiusSq = 0.0f;
   for (const auto& v : m_vertices) {
-    minX = std::min(minX, v.x);
-    minY = std::min(minY, v.y);
-    minZ = std::min(minZ, v.z);
-    maxX = std::max(maxX, v.x);
-    maxY = std::max(maxY, v.y);
-    maxZ = std::max(maxZ, v.z);
+    const float dx = v.x - c[0];
+    const float dy = v.y - c[1];
+    const float dz = v.z - c[2];
+    radiusSq = std::max(radiusSq, dx * dx + dy * dy + dz * dz);
+  }
+  return std::sqrt(radiusSq);
+}
+
+void RenderCore::updateBounds() {
+  if (m_vertices.empty()) {
+    m_boundsMin = {0.0f, 0.0f, 0.0f};
+    m_boundsMax = {0.0f, 0.0f, 0.0f};
+    return;
   }
 
-  const float cx = 0.5f * (minX + maxX);
-  const float cy = 0.5f * (minY + maxY);
-  const float cz = 0.5f * (minZ + maxZ);
-  const float extentX = maxX - minX;
-  const float extentY = maxY - minY;
-  const float extentZ = maxZ - minZ;
-  const float maxExtent = std::max({extentX, extentY, extentZ, 1e-3f});
-  const float normalizeScale = 1.6f / maxExtent;
-
-  for (auto& v : m_vertices) {
-    v.x = (v.x - cx) * normalizeScale;
-    v.y = (v.y - cy) * normalizeScale;
-    v.z = (v.z - cz) * normalizeScale;
+  m_boundsMin = {m_vertices.front().x, m_vertices.front().y, m_vertices.front().z};
+  m_boundsMax = m_boundsMin;
+  for (const auto& v : m_vertices) {
+    m_boundsMin[0] = std::min(m_boundsMin[0], v.x);
+    m_boundsMin[1] = std::min(m_boundsMin[1], v.y);
+    m_boundsMin[2] = std::min(m_boundsMin[2], v.z);
+    m_boundsMax[0] = std::max(m_boundsMax[0], v.x);
+    m_boundsMax[1] = std::max(m_boundsMax[1], v.y);
+    m_boundsMax[2] = std::max(m_boundsMax[2], v.z);
   }
 }
 

@@ -26,6 +26,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_EXAMPLES "Build example app" ON)
+include(CTest)
 
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
@@ -43,6 +44,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 list(APPEND CMAKE_PREFIX_PATH "C:/Qt/6.10.2/msvc2022_64/lib/cmake")
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets)
 find_package(OpenGL REQUIRED)
+find_package(Vulkan REQUIRED)
 find_package(OpenCASCADE REQUIRED)
 
 add_subdirectory(data)
@@ -78,6 +80,33 @@ set_target_properties(app PROPERTIES
     # RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin"
     PDB_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin"
 )
+foreach(CONFIG DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+    set_target_properties(app PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_SOURCE_DIR}/bin"
+    )
+endforeach()
+
+if(BUILD_TESTING)
+    add_executable(scene_document_tests
+        tests/SceneDocumentTests.cpp
+    )
+    target_link_libraries(scene_document_tests PRIVATE data)
+    target_include_directories(scene_document_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/include
+    )
+    set_target_properties(scene_document_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
+    )
+    foreach(CONFIG DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+        set_target_properties(scene_document_tests PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY_${CONFIG} "${CMAKE_SOURCE_DIR}/bin"
+        )
+    endforeach()
+    add_test(NAME scene_document_tests COMMAND scene_document_tests)
+    set_tests_properties(scene_document_tests PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
+    )
+endif()
 
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
 message(STATUS "CMake build dir: ${CMAKE_BINARY_DIR}")
